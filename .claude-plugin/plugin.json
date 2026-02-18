@@ -1,0 +1,13 @@
+{
+  "name": "LetsClarify",
+  "description": "Human-in-the-loop form collection skill for AI agents — create forms, send URLs to humans, get structured JSON back",
+  "version": "1.0.0",
+  "author": {
+    "name": "heisee",
+    "url": "https://github.com/heisee"
+  },
+  "homepage": "https://letsclarify.ai",
+  "repository": "https://github.com/heisee/LetsClarify-Skill",
+  "license": "MIT",
+  "keywords": ["letsclarify", "human-in-the-loop", "forms", "api", "approval", "hitl"]
+}
