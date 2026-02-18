@@ -1,5 +1,7 @@
 # Let's Clarify
 
+[![smithery badge](https://smithery.ai/badge/letsclarify/letsclarify)](https://smithery.ai/server/letsclarify/letsclarify)
+
 Human-in-the-loop form collection for AI agents. When your workflow needs structured human input before proceeding — approvals, decisions, reviews, data collection — Let's Clarify handles it.
 
 **Website:** https://letsclarify.ai
