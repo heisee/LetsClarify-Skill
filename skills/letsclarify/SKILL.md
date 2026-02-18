@@ -320,6 +320,49 @@ Supported field types:
 - `max_size_mb` — max file size (1-10)
 - `max_files` — max number of files (1-10)
 
+## MCP Server (Remote)
+
+LetsClarify provides a remote MCP (Model Context Protocol) endpoint for direct AI agent integration. Instead of making manual HTTP calls, MCP-compatible clients (Claude Code, Cursor, etc.) can use LetsClarify as a native tool.
+
+**Endpoint:** `https://letsclarify.ai/mcp`
+
+### Configuration
+
+Add to your MCP client configuration:
+
+```json
+{
+  "mcpServers": {
+    "letsclarify": {
+      "url": "https://letsclarify.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer lc_..."
+      }
+    }
+  }
+}
+```
+
+For unauthenticated access (register tool only), omit the `headers` field.
+
+### Available Tools
+
+| Tool | Auth Required | Description |
+|---|---|---|
+| `register` | No | Register for a new API key |
+| `create_form` | Yes | Create a form with schema, get URLs and tokens |
+| `add_recipients` | Yes | Add recipient slots to an existing form |
+| `get_summary` | Yes | Quick status check (total, submitted, pending) |
+| `get_results` | Yes | Fetch submissions with pagination and filters |
+| `delete_form` | Yes | Permanently delete a form and all its data |
+
+### MCP Rate Limits
+
+| Endpoint | Limit | Window |
+|---|---|---|
+| POST /mcp (per IP) | 60 | 1 minute |
+| POST /mcp (per API key) | 60 | 1 minute |
+
 ## Rate Limits & Backoff Strategy
 
 | Endpoint | Limit | Window |
