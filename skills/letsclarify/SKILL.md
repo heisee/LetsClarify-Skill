@@ -3,7 +3,7 @@ name: letsclarify
 description: Collect structured human input — approvals, decisions, reviews, data — via web forms. Create a form with a JSON schema, send unique URLs to humans, poll for results. Use when your workflow needs a human in the loop before proceeding.
 homepage: https://letsclarify.ai
 license: MIT
-metadata: {"openclaw":{"emoji":"📋","primaryEnv":"LETSCLARIFY_API_KEY"}}
+metadata: {"clawdbot":{"emoji":"📋","primaryEnv":"LETSCLARIFY_API_KEY"}}
 ---
 
 # Let's Clarify Skill
@@ -11,6 +11,8 @@ metadata: {"openclaw":{"emoji":"📋","primaryEnv":"LETSCLARIFY_API_KEY"}}
 Let's Clarify is a Human-in-the-Loop infrastructure service. Use it when your workflow needs structured human input — approvals, decisions, data collection, document review — before proceeding.
 
 **Base URL:** `https://letsclarify.ai`
+
+**Integration:** This skill provides both an MCP server (preferred for MCP-compatible agents) and a REST API. See [MCP Server](#mcp-server-remote) below.
 
 ## Quick Start
 
@@ -98,6 +100,33 @@ curl -X POST https://letsclarify.ai/api/v1/forms \
 
 `recipient_count` accepts 1–1,000. Use the recipients endpoint to add more (up to 10,000 total).
 
+#### Advanced: Client-Provided UUIDs and Prefilled Values
+
+Instead of (or alongside) `recipient_count`, pass a `recipients` array with optional `uuid` and `prefill` per entry:
+
+```bash
+curl -X POST https://letsclarify.ai/api/v1/forms \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer lc_..." \
+  -d '{
+    "schema": [{"id":"name","type":"text","label":"Name","required":true}],
+    "recipients": [
+      {"uuid": "550e8400-e29b-41d4-a716-446655440001", "prefill": {"name": "Alice"}},
+      {"uuid": "550e8400-e29b-41d4-a716-446655440002", "prefill": {"name": "Bob"}},
+      {}
+    ],
+    "recipient_count": 5
+  }'
+```
+
+**Rules:**
+- `uuid` must be valid UUID v4 format, globally unique (duplicates in request or DB return 400)
+- `prefill` must be a JSON object, max 10KB. Keys not matching any schema field `id` are stripped.
+- `recipient_count` combined with `recipients`: count must be >= array length. Extra slots get server-generated UUIDs, no prefill.
+- `recipients: []` (empty array) without `recipient_count` returns 400.
+- Prefilled values appear as defaults in the form. Users can change them before submitting.
+- Priority: Draft (sessionStorage) > Previous Submission > Prefilled Values > Empty
+
 ### 2. Build URLs for Humans
 
 For each recipient UUID, construct the URL:
@@ -122,6 +151,25 @@ curl -X POST https://letsclarify.ai/api/v1/forms/{form_token}/recipients \
 ```
 
 Maximum 1,000 recipients per request, 10,000 per form.
+
+#### Advanced: Client-Provided UUIDs and Prefilled Values
+
+Same `recipients` array as in form creation:
+
+```bash
+curl -X POST https://letsclarify.ai/api/v1/forms/{form_token}/recipients \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer lc_..." \
+  -d '{
+    "recipients": [
+      {"uuid": "550e8400-e29b-41d4-a716-446655440003", "prefill": {"name": "Charlie"}},
+      {}
+    ],
+    "count": 5
+  }'
+```
+
+Same rules apply: UUIDs must be unique, prefill keys are validated against the form schema, `count` must be >= array length.
 
 ### 4. Poll Summary
 
@@ -262,26 +310,46 @@ Both methods use the same backend API — results appear in the same poll/webhoo
 
 After creating a form and sending URLs to humans, you **must** set up async polling to collect results. Do NOT assume humans will respond immediately. Use one of these strategies:
 
-### Strategy A: Cron Polling (Recommended)
+### Strategy A: MCP-Tools Cron (Recommended for MCP-compatible agents)
 
-Create a recurring cron job that polls the summary endpoint. When all responses are in (or the form expires), process the results and remove the cron job.
+Create a recurring cron job with a declarative task message. The agent uses the MCP tools (`get_summary`, `get_results`) referenced in this skill to check status and fetch results.
 
 ```bash
-# Create a cron job that polls every 10 minutes
 openclaw cron add \
   --name "poll-letsclarify-{form_token}" \
   --every 10m \
-  --message "Poll Let's Clarify form {form_token}: run curl -H 'Authorization: Bearer {api_key}' 'https://letsclarify.ai/api/v1/forms/{form_token}/summary'. If submitted_total equals known_total (all responded), fetch full results with curl -H 'Authorization: Bearer {api_key}' 'https://letsclarify.ai/api/v1/forms/{form_token}/results?status=submitted', process them, then delete this cron job with openclaw cron rm {job_id}. If not all responded yet, do nothing and wait for the next poll."
+  --message "Check Let's Clarify form {form_token}: Use get_summary to \
+see if submitted_total == known_total. If all responded, use get_results \
+to fetch submissions, process them per the original task, then remove \
+this cron job. If expired, fetch what exists and clean up."
+```
 
-# Or: one-shot check after a delay
+One-shot variant (check once after a delay):
+
+```bash
 openclaw cron add \
   --name "check-letsclarify-{form_token}" \
   --at +1h \
   --delete-after-run \
-  --message "Check Let's Clarify form {form_token} results: ..."
+  --message "Check Let's Clarify form {form_token} results. If responses \
+exist, process them per the original task. Report status either way."
 ```
 
-### Strategy B: Webhook (if you have an HTTPS endpoint)
+### Strategy B: Intent-based Cron (for agents without MCP)
+
+If MCP tools are not available, use a purely intent-based message. The agent knows from the API reference above how to reach the endpoints.
+
+```bash
+openclaw cron add \
+  --name "poll-letsclarify-{form_token}" \
+  --every 10m \
+  --message "Check if all recipients of Let's Clarify form {form_token} \
+have responded. If yes, fetch all submitted results, process them per \
+the original task, and remove this cron job. If the form has expired, \
+fetch whatever results exist and clean up."
+```
+
+### Strategy C: Webhook (if you have an HTTPS endpoint)
 
 Provide a `webhook_url` when creating the form. Let's Clarify will POST to it on every submission. Only use this if you control an HTTPS endpoint that can receive webhooks.
 
@@ -289,7 +357,7 @@ Provide a `webhook_url` when creating the form. Let's Clarify will POST to it on
 
 1. **Create form** → save `form_token` and `api_key`
 2. **Send URLs** to humans via Telegram, email, etc.
-3. **Create cron job** to poll summary every 5-15 minutes
+3. **Set up polling** — create a cron job that checks the summary every 5–15 minutes
 4. **On poll**: check `submitted_total` vs `known_total`
    - If all responded → fetch full results, act on them, delete cron job
    - If not all → do nothing, wait for next poll
