@@ -320,8 +320,8 @@ openclaw cron add \
   --every 10m \
   --message "Check Let's Clarify form {form_token}: Use get_summary to \
 see if submitted_total == known_total. If all responded, use get_results \
-to fetch submissions, process them per the original task, then remove \
-this cron job. If expired, fetch what exists and clean up."
+to fetch submissions and summarize the responses, then remove this cron \
+job. If expired, fetch what exists and clean up."
 ```
 
 One-shot variant (check once after a delay):
@@ -332,7 +332,7 @@ openclaw cron add \
   --at +1h \
   --delete-after-run \
   --message "Check Let's Clarify form {form_token} results. If responses \
-exist, process them per the original task. Report status either way."
+exist, fetch and summarize them. Report status either way."
 ```
 
 ### Strategy B: Intent-based Cron (for agents without MCP)
@@ -344,9 +344,9 @@ openclaw cron add \
   --name "poll-letsclarify-{form_token}" \
   --every 10m \
   --message "Check if all recipients of Let's Clarify form {form_token} \
-have responded. If yes, fetch all submitted results, process them per \
-the original task, and remove this cron job. If the form has expired, \
-fetch whatever results exist and clean up."
+have responded. If yes, fetch and summarize all submitted results, then \
+remove this cron job. If the form has expired, fetch whatever results \
+exist and clean up."
 ```
 
 ### Strategy C: Webhook (if you have an HTTPS endpoint)
