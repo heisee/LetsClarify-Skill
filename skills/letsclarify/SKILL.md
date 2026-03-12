@@ -74,7 +74,7 @@ Optional params: `theme_color` (hex, e.g. `#1a2b3c`). `recipient_count` accepts 
 
 Query params: `limit`, `status` (submitted/pending), `cursor` (pagination), `include_files=1` (base64), `updated_since` (ISO 8601).
 
-**Response:** `{expired, next_cursor, server_time, results: [{recipient_uuid, status, submitted_at, response_json, files}]}`.
+**Response:** `{expired, next_cursor, server_time, results: [{recipient_uuid, status, submitted_at, updated_at, response_json, files}]}`.
 
 **Efficient polling:** First paginate with cursor until `next_cursor` is null, store `server_time`. Then poll with `updated_since={server_time}`.
 
