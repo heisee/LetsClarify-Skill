@@ -13,6 +13,8 @@ Human-in-the-Loop infrastructure. Use when your workflow needs structured human 
 **Base URL:** `https://letsclarify.ai`
 **Auth:** `Authorization: Bearer lc_...` on all API calls.
 
+> For full curl examples, detailed response payloads, MCP tool descriptions, all polling strategies, embed widget details, and advanced prefill rules, see [REFERENCE.md](./REFERENCE.md).
+
 ## MCP Server (Preferred)
 
 MCP-compatible agents should use the remote MCP endpoint instead of raw REST calls.
